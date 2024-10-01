@@ -2,6 +2,7 @@ import numpy as np
 from rl_mdp.mdp.abstract_mdp import AbstractMDP
 from rl_mdp.model_free_prediction.abstract_evaluator import AbstractEvaluator
 from rl_mdp.policy.abstract_policy import AbstractPolicy
+from rl_mdp.util import create_policy_1, create_policy_2, create_mdp
 
 
 class TDLambdaEvaluator(AbstractEvaluator):
@@ -43,4 +44,22 @@ class TDLambdaEvaluator(AbstractEvaluator):
 
         :param policy: A policy object that provides action probabilities for each state.
         """
-        pass
+        state = self.env.reset()
+        self.eligibility_traces.fill(0) 
+        done = False
+
+        while not done:
+            action = policy.sample_action(state)
+            
+            next_state, reward, done = self.env.step(action)
+            
+            td_target = reward + self.env.discount_factor * self.value_fun[next_state]
+            td_error = td_target - self.value_fun[state]
+
+            self.eligibility_traces[state] += 1
+
+            for s in range(self.env.num_states):
+                self.value_fun[s] += self.alpha * td_error * self.eligibility_traces[s]
+                self.eligibility_traces[s] *= self.env.discount_factor * self.lambd
+            
+            state = next_state

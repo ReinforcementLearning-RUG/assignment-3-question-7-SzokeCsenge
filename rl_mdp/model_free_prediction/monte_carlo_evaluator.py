@@ -4,6 +4,7 @@ import numpy as np
 from rl_mdp.mdp.abstract_mdp import AbstractMDP
 from rl_mdp.model_free_prediction.abstract_evaluator import AbstractEvaluator
 from rl_mdp.policy.abstract_policy import AbstractPolicy
+from rl_mdp.util import create_policy_1, create_policy_2, create_mdp
 
 
 class MCEvaluator(AbstractEvaluator):
@@ -57,4 +58,14 @@ class MCEvaluator(AbstractEvaluator):
 
         :param episode: A list of (state, action, reward) tuples.
         """
-        pass
+        G = 0
+        visited_states = set()
+
+        for t in reversed(range(len(episode))):
+            state, _, reward = episode[t]
+            G = self.env.discount_factor * G + reward
+
+            if state not in visited_states:
+                visited_states.add(state)
+                self.returns[state].append(G)
+                self.value_fun[state] = np.mean(self.returns[state])
